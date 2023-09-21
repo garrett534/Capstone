@@ -6,11 +6,14 @@
 
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
+// Create the global variable
+int16_t accel_x;
+int16_t accel_y;
+
 typedef struct struct_message {
   int id;
   int x;
   int y;
-  int z;
 }struct_message;
 
 // Create a struct_message called myData
@@ -38,6 +41,8 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
   boardsStruct[myData.id-1].y = myData.y;
   Serial.printf("x value: %d \n", boardsStruct[myData.id-1].x);
   Serial.printf("y value: %d \n", boardsStruct[myData.id-1].y);
+  accel_x = myData.x;
+  accel_y = myData.y;
   Serial.println();
 }
 
@@ -52,11 +57,6 @@ WiFiClient client;
 
 const char* ssid   = "ROAR WebServer";// This is the SSID that ESP32 will broadcast
 const char* password = "12345678";     // password should be atleast 8 characters to make it work
-
-// Create the global variable
-int16_t accel_x;
-int16_t accel_y;
-int16_t accel_z;
 
 // Variable to store the HTTP request
 String header;
@@ -89,10 +89,6 @@ void updateWebpage() {
   client.println("<p>2. Y: " + String(accel_y) + "</p>");
   client.print("<hr>");
 
-  //Z
-  client.println("<p>3. Z: " + String(accel_z) + "</p>");
-  client.println("</body></html>");
-  client.println();
 }
 
 void setup() {
@@ -130,21 +126,14 @@ void setup() {
 }
 
 void loop() {
-
-  accel_x = analogRead(xPin);
-  accel_y = analogRead(yPin);
-  accel_z = analogRead(zPin);
-  /*
+ 
   Serial.print("Accelx:");
   Serial.print(accel_x);
   Serial.print(",");
   Serial.print("Accely:");
   Serial.print(accel_y);
   Serial.print(",");
-  Serial.print("Accelz:");
-  Serial.print(accel_z);
-  Serial.print("\n");
-  */
+
   if ( client = server.available() ) {  // Checks if a new client tries to connect to our server
     Serial.println("New Client.");
     String clientData = "";    
