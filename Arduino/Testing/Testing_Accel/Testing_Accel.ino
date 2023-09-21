@@ -88,7 +88,7 @@ void loop() {
   accel_x = analogRead(xPin);
   accel_y = analogRead(yPin);
   accel_z = analogRead(zPin);
-  /*
+  
   Serial.print("Accelx:");
   Serial.print(accel_x);
   Serial.print(",");
@@ -98,7 +98,7 @@ void loop() {
   Serial.print("Accelz:");
   Serial.print(accel_z);
   Serial.print("\n");
-*/
+
   if ( client = server.available() ) {  // Checks if a new client tries to connect to our server
     Serial.println("New Client.");
     String clientData = "";    

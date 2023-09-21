@@ -10,7 +10,6 @@ typedef struct struct_message {
   int id;
   int x;
   int y;
-  int z;
 }struct_message;
 
 // Create a struct_message called myData
@@ -40,7 +39,6 @@ const char* password = "12345678";     // password should be atleast 8 character
 // Create the global variable
 int16_t accel_x;
 int16_t accel_y;
-int16_t accel_z;
 
 // Variable to store the HTTP request
 String header;
@@ -73,10 +71,6 @@ void updateWebpage() {
   client.println("<p>2. Y: " + String(accel_y) + "</p>");
   client.print("<hr>");
 
-  //Z
-  client.println("<p>3. Z: " + String(accel_z) + "</p>");
-  client.println("</body></html>");
-  client.println();
 }
 
 void setup() {
@@ -123,7 +117,6 @@ void loop() {
   myData.id = 1;
   myData.x = analogRead(xPin);
   myData.y = analogRead(yPin);
-  myData.z = analogRead(zPin);
   
   /*
   Serial.print("Accelx:");
@@ -132,9 +125,7 @@ void loop() {
   Serial.print("Accely:");
   Serial.print(accel_y);
   Serial.print(",");
-  Serial.print("Accelz:");
-  Serial.print(accel_z);
-  Serial.print("\n");
+
   */
 
   // Send message via ESP-NOW
