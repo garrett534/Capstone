@@ -1,5 +1,4 @@
 #include <WiFi.h>
-#include <Wire.h>
 
 // const uint8_t MPU_ADDR = 0x68; // I2C address of the MPU-6050
 const int xPin = 2;
@@ -73,18 +72,6 @@ void setup() {
 }
 
 void loop() {
-  /*
-  Wire.begin(); // Initialize I2C communication
-  Wire.beginTransmission(MPU_ADDR); // Start communication with the MPU-6050
-  Wire.write(0x3B); // Send first register of the accelerometer data
-  Wire.endTransmission(false); // Restart communication without releasing the bus
-  Wire.requestFrom(MPU_ADDR, (size_t) 14, true); // Request 14 bytes of data from the MPU-6050
-  accel_x = Wire.read() << 8 | Wire.read();
-  accel_y = Wire.read() << 8 | Wire.read();
-  accel_z = Wire.read() << 8 | Wire.read();
-  Wire.read(); // Skip temperature data
-  Wire.read(); // Skip gyro data
-  */
   accel_x = analogRead(xPin);
   accel_y = analogRead(yPin);
   accel_z = analogRead(zPin);
