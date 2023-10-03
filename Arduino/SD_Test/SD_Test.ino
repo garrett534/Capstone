@@ -185,7 +185,7 @@ void setup(){
     // Set SPI Pins
     spi.begin(SCK, MISO, MOSI, CS);
     
-    if(!SD.begin(CS,spi,80000000)){
+    if(!SD.begin(CS)){
         Serial.println("Card Mount Failed");
         return;
     }
