@@ -74,57 +74,65 @@ const char index_html[] PROGMEM = R"rawliteral(
   <link rel="icon" href="data:,">
   <style>
     html {font-family: Arial; display: inline-block; text-align: center;}
-    p {  font-size: 1.2rem;}
-    body {  margin: 0;}
-    .topnav { overflow: hidden; background-color: #2f4468; color: white; font-size: 1.7rem; }
-    .content { padding: 20px; }
-    .card { background-color: white; box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5); }
-    .cards { max-width: 700px; margin: 0 auto; display: grid; grid-gap: 2rem; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-    .reading { font-size: 2.8rem; }
-    .packet { color: #bebebe; }
-    .status-box { width: 100px; height: 100px; border: 2px solid #000; margin: 0 auto; }
-    .status-text { font-size: 1.5rem; margin-top: 10px; }
+    p {font-size: 1.2rem;}
+    body {margin: 0;}
+    .topnav {overflow: hidden; background-color: #e33636; color: white; font-size: 1.7rem;}
+    .content {padding: 20px;}
+    .card {background-color: white; box-shadow: 2px 2px 12px 1px rgba(140,140,140,.5); margin: 10px; padding: 10px; text-align: center; width: 200px;}
+    .cards {max-width: 700px; margin: 0 auto; display: flex; flex-direction: row; justify-content: center;align-items: center;}
+    .reading {font-size: 2.8rem;}
+    .packet {color: #bebebe;}
+    .status-box {width: 100px; height: 100px; border: 2px solid #000; margin: 0 auto;}
+    .status-text {font-size: 1.5rem; margin-top: 10px;}
   </style>
 </head>
 <body>
   <div class="topnav">
-    <h3>ESP-NOW DASHBOARD</h3>
+    <h3>ROAR Sync Dashboard</h3>
   </div>
   <div class="content">
     <div class="cards">
       <div class="card">
         <h4><i class="fas fa-thermometer-half"></i> Rower 1</h4>
         <div class="status-box" id="status1"></div>
-        <p class="status-text" id="statusText1">Status: </p>
+        <p class="status-text" id="statusText1">Status: <span id="statusSpan1"></span></p>
       </div>
       <div class="card">
         <h4><i class="fas fa-tint"></i> Rower 2</h4>
         <div class="status-box" id="status2"></div>
-        <p class="status-text" id="statusText2">Status: </p>
+        <p class="status-text" id="statusText2">Status: <span id="statusSpan2"></span></p>
       </div>
       <div class="card">
         <h4><i class="fas fa-thermometer-half"></i> Rower 3</h4>
         <div class="status-box" id="status3"></div>
-        <p class="status-text" id="statusText3">Status: </p>
+        <p class="status-text" id="statusText3">Status: <span id="statusSpan3"></span></p>
       </div>
       <div class="card">
         <h4><i class="fas fa-tint"></i> Rower 4</h4>
         <div class="status-box" id="status4"></div>
-        <p class="status-text" id="statusText4">Status: </p>
+        <p class="status-text" id="statusText4">Status: <span id="statusSpan4"></span></p>
       </div>
     </div>
   </div>
-<script>
+  <script>
   // Function to update the box color and status text with random colors
   function updateStatusRandomColors(rower) {
     var statusBox = document.getElementById('status' + rower);
-    var statusText = document.getElementById('statusText' + rower);
+    var statusTextSpan = document.getElementById('statusSpan' + rower); // Updated
 
-    var colors = ['in sync', 'out of sync', 'falling out of sync'];
+    var colors = ['green', 'red', 'yellow'];
     var randomColor = colors[Math.floor(Math.random() * colors.length)];
     
     statusBox.style.backgroundColor = randomColor;
-    statusText.textContent = 'Status: ' + randomColor;
+    
+    // Set the appropriate status text based on the color
+    if (randomColor === 'green') {
+      statusTextSpan.textContent = 'in-sync'; // Updated
+    } else if (randomColor === 'red') {
+      statusTextSpan.textContent = 'out-of-sync'; // Updated
+    } else {
+      statusTextSpan.textContent = 'warning'; // Updated
+    }
   }
 
   // Function to update the status boxes periodically
