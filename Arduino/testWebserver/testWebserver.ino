@@ -147,7 +147,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   updateStatusPeriodically();
 
   // Update the status boxes every 3 seconds (adjust the interval as needed)
-  setInterval(updateStatusPeriodically, 3000);
+  setInterval(updateStatusPeriodically, 1500);
 </script>
 </body>
 </html>)rawliteral";
