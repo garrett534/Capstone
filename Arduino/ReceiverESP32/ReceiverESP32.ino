@@ -3,8 +3,11 @@
 #include <esp_now.h>
 
 // Reciever Board Code
-
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+// Create the global variable
+int16_t accel_x;
+int16_t accel_y;
 
 typedef struct struct_message {
   int id;

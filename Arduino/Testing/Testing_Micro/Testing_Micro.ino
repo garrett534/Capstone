@@ -1,10 +1,14 @@
 #include <WiFi.h>
-#include <Wire.h>
 
 // const uint8_t MPU_ADDR = 0x68; // I2C address of the MPU-6050
-const int xPin = 2;
-const int yPin = 3;
-const int zPin = 4;
+
+// ADC pins to 
+const int ADCPin0 = 0;
+const int ADCPin1 = 1;
+const int ADCPin2 = 2;
+const int ADCPin3 = 3;
+const int ADCPin4 = 4;
+const int ADCPin5 = 5;
 
 // Create the objects for server and client
 WiFiServer server(80);
@@ -14,9 +18,13 @@ const char* ssid   = "ROAR WebServer";// This is the SSID that ESP32 will broadc
 const char* password = "12345678";     // password should be atleast 8 characters to make it work
 
 // Create the global variable
-int16_t accel_x;
-int16_t accel_y;
-int16_t accel_z;
+int16_t accel_x_0;
+int16_t accel_x_1;
+int16_t accel_x_2;
+int16_t accel_x_3;
+int16_t accel_x_4;
+int16_t accel_x_5;
+
 
 // Variable to store the HTTP request
 String header;
@@ -40,7 +48,7 @@ void updateWebpage() {
 
   // Web Page Heading
   client.println("<body><h1>ESP32 Accelerometer Sensor</h1>");
-
+/*
   //X
   client.println("<p>1. X: " + String(accel_x) + "</p>");
   client.print("<hr>");
@@ -52,6 +60,7 @@ void updateWebpage() {
   //Z
   client.println("<p>3. Z: " + String(accel_z) + "</p>");
   client.println("</body></html>");
+  */
   client.println();
 }
 
@@ -73,32 +82,34 @@ void setup() {
 }
 
 void loop() {
-  /*
-  Wire.begin(); // Initialize I2C communication
-  Wire.beginTransmission(MPU_ADDR); // Start communication with the MPU-6050
-  Wire.write(0x3B); // Send first register of the accelerometer data
-  Wire.endTransmission(false); // Restart communication without releasing the bus
-  Wire.requestFrom(MPU_ADDR, (size_t) 14, true); // Request 14 bytes of data from the MPU-6050
-  accel_x = Wire.read() << 8 | Wire.read();
-  accel_y = Wire.read() << 8 | Wire.read();
-  accel_z = Wire.read() << 8 | Wire.read();
-  Wire.read(); // Skip temperature data
-  Wire.read(); // Skip gyro data
-  */
-  accel_x = analogRead(xPin);
-  accel_y = analogRead(yPin);
-  accel_z = analogRead(zPin);
-  /*
-  Serial.print("Accelx:");
-  Serial.print(accel_x);
+  accel_x_0 = analogRead(ADCPin0);
+  accel_x_1 = analogRead(ADCPin1);
+  accel_x_2 = analogRead(ADCPin2);
+  accel_x_3 = analogRead(ADCPin3);
+  accel_x_4 = analogRead(ADCPin4);
+  accel_x_5 = analogRead(ADCPin5);
+  
+  
+  Serial.print("ADC Pin 0:");
+  Serial.print(accel_x_0);
   Serial.print(",");
-  Serial.print("Accely:");
-  Serial.print(accel_y);
+  Serial.print("ADC Pin 1:");
+  Serial.print(accel_x_1);
   Serial.print(",");
-  Serial.print("Accelz:");
-  Serial.print(accel_z);
+  Serial.print("ADC Pin 2:");
+  Serial.print(accel_x_2);
+
+  Serial.print("ADC Pin 3:");
+  Serial.print(accel_x_3);
+  Serial.print(",");
+  Serial.print("ADC Pin 4:");
+  Serial.print(accel_x_4);
+  Serial.print(",");
+  Serial.print("ADC Pin 5:");
+  Serial.print(accel_x_5);
+  
   Serial.print("\n");
-*/
+
   if ( client = server.available() ) {  // Checks if a new client tries to connect to our server
     Serial.println("New Client.");
     String clientData = "";    
