@@ -146,7 +146,7 @@ const char index_html[] PROGMEM = R"rawliteral(
   // Call the function to update the status initially
   updateStatusPeriodically();
 
-  // Update the status boxes every 3 seconds (adjust the interval as needed)
+  // Update the status boxes every 1.5 seconds (adjust the interval as needed)
   setInterval(updateStatusPeriodically, 1500);
 </script>
 </body>
