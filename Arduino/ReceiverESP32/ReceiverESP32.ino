@@ -3,7 +3,6 @@
 #include <esp_now.h>
 
 // Reciever Board Code
-
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 // Create the global variable
