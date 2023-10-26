@@ -10,11 +10,6 @@ AsyncEventSource events("/events");
 // Reciever Board Code
 uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-int inSync1 = 1;
-int inSync2 = 1;
-int inSync3 = 1;
-int inSync4 = 1;
-
 // Create the global variable
 int16_t accel_x;
 int16_t accel_y;
@@ -27,6 +22,15 @@ typedef struct struct_message {
 
 // Create a struct_message called myData
 struct_message myData;
+
+// Create the global variable
+double R2R1_diff; //difference of rower 2 w/respect to rower 1
+double R3R1_diff; //difference of rower 3 w/respect to rower 1
+double R4R1_diff; //difference of rower 4 w/respect to rower 1
+int sync_thrs = 50; //threshold of 3 g's (not final waiting on testing)
+int R2R1_sync = 2; //sync bits for rower 2, 3 for slower, 1 for faster, 2 in sync
+int R3R1_sync = 2; // sync bits for rower 3
+int R4R1_sync = 2; // sync bits for rower 4
 
 // Create a structure to hold the readings from each board
 struct_message board1;
@@ -51,9 +55,34 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
   boardsStruct[myData.id-1].y = myData.y;
   Serial.printf("x value: %d \n", boardsStruct[myData.id-1].x);
   Serial.printf("y value: %d \n", boardsStruct[myData.id-1].y);
-  accel_x = myData.x;
-  accel_y = myData.y;
-  Serial.println();
+
+  Serial.printf("R2 R1 Sync: %d \n", R2R1_sync);
+  R2R1_diff = boardsStruct[0].x - boardsStruct[1].x; //rower 1 - rower 2
+  if(R2R1_diff <= sync_thrs && R2R1_diff >= -sync_thrs){ //rowers in sync
+      R2R1_sync = 2;
+  } else if (R2R1_diff < -sync_thrs){ //rower2 faster
+      R2R1_sync = 1;
+  } else { //rower 2 slower 
+      R2R1_sync = 3;
+  }
+  //compare rower 3 to rower 1
+  R3R1_diff = boardsStruct[0].x - boardsStruct[2].x; //rower 1 - rower 3
+  if(R3R1_diff <= sync_thrs && R3R1_diff >= -sync_thrs){ //rowers in sync
+      R3R1_sync = 2;
+   } else if (R3R1_diff < -sync_thrs){ //rower3 faster
+      R3R1_sync = 1;
+   } else { //rower 3 slower 
+      R3R1_sync = 3;
+   }
+  //compare rower 4 to rower 1
+  R4R1_diff = boardsStruct[0].x - boardsStruct[3].x; //rower 1 - rower 4
+  if(R4R1_diff <= sync_thrs && R4R1_diff >= -sync_thrs){ //rowers in sync
+      R4R1_sync = 2;
+   } else if (R4R1_diff < -sync_thrs){ //rower4 faster
+      R4R1_sync = 1;
+   } else { //rower 4 slower 
+      R4R1_sync = 3;
+   }
 }
 
 // const uint8_t MPU_ADDR = 0x68; // I2C address of the MPU-6050
@@ -95,7 +124,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       <div class="card">
         <h4><i class="fas fa-thermometer-half"></i> Rower 1</h4>
         <div class="status-box" id="status1"></div>
-        <p class="status-text" id="statusText1">Status: <span id="statusSpan1"></span></p>
+        <p class="status-text" id="statusText1">Target Rower</p>
       </div>
       <div class="card">
         <h4><i class="fas fa-tint"></i> Rower 2</h4>
@@ -114,40 +143,37 @@ const char index_html[] PROGMEM = R"rawliteral(
       </div>
     </div>
   </div>
-  <script>
-  // Function to update the box color and status text with random colors
-  function updateStatusRandomColors(rower) {
-    var statusBox = document.getElementById('status' + rower);
-    var statusTextSpan = document.getElementById('statusSpan' + rower); // Updated
+<script>
+  // Function to update the box color and status text based on R2R1, R3R1, R4R1 values
+  function updateStatusColorAndText(data) {
+    var syncValues = data.split(",");
+    var statusBox;
+    var statusTextSpan;
+    
+    for (var i = 2; i <= 4; i++) {
+      statusBox = document.getElementById('status' + i);
+      statusTextSpan = document.getElementById('statusSpan' + i);
 
-    var colors = ['green', 'red', 'yellow'];
-    var randomColor = colors[Math.floor(Math.random() * colors.length)];
-    
-    statusBox.style.backgroundColor = randomColor;
-    
-    // Set the appropriate status text based on the color
-    if (randomColor === 'green') {
-      statusTextSpan.textContent = 'in-sync'; // Updated
-    } else if (randomColor === 'red') {
-      statusTextSpan.textContent = 'out-of-sync'; // Updated
-    } else {
-      statusTextSpan.textContent = 'warning'; // Updated
+      if (syncValues[i - 2] === '0') {
+        statusBox.style.backgroundColor = 'yellow';
+        statusTextSpan.textContent = 'slower';
+      } else if (syncValues[i - 2] === '1') {
+        statusBox.style.backgroundColor = 'red';
+        statusTextSpan.textContent = 'faster';
+      } else if (syncValues[i - 2] === '2') {
+        statusBox.style.backgroundColor = 'green';
+        statusTextSpan.textContent = 'in-sync';
+      } else {
+        // Handle other cases if needed
+      }
     }
   }
 
-  // Function to update the status boxes periodically
-  function updateStatusPeriodically() {
-    updateStatusRandomColors(1);
-    updateStatusRandomColors(2);
-    updateStatusRandomColors(3);
-    updateStatusRandomColors(4);
-  }
-
-  // Call the function to update the status initially
-  updateStatusPeriodically();
-
-  // Update the status boxes every 1.5 seconds (adjust the interval as needed)
-  setInterval(updateStatusPeriodically, 1500);
+  // Event listener to receive the data from the server
+  var source = new EventSource('/events');
+  source.onmessage = function(event) {
+    updateStatusColorAndText(event.data);
+  };
 </script>
 </body>
 </html>)rawliteral";
@@ -200,9 +226,16 @@ void setup() {
 
 }
 
+// Function to update the status boxes periodically
+void updateStatus() {
+  String data = String(R2R1_sync) + "," + String(R3R1_sync) + "," + String(R4R1_sync);
+  events.send(data.c_str(), NULL, millis());
+}
+
 void loop() {
   static unsigned long lastEventTime = millis();
   static const unsigned long EVENT_INTERVAL_MS = 5000;
+  updateStatus();
   if ((millis() - lastEventTime) > EVENT_INTERVAL_MS) {
     events.send("ping",NULL,millis());
     lastEventTime = millis();
