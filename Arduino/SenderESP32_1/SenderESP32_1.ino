@@ -13,7 +13,7 @@ typedef struct struct_message {
 }struct_message;
 //global variables
 int offset=0;
-int numSamples = 1000;
+int numSamples = 2000;
 int sum_accel=0;
 int i=0;
 int calb;
@@ -29,7 +29,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
-// Set ADC pins for each direction
+// const uint8_t MPU_ADDR = 0x68; // I2C address of the MPU-6050
 const int xPin = 2;
 //const int yPin = 3;
 //const int zPin = 4;
@@ -123,7 +123,7 @@ void loop() {
     sum_accel += calb;
     offset = sum_accel/numSamples;
   }
-    myData.id = 1;
+    myData.id = 3;
     myData.x = analogRead(xPin)-offset;
    
   // Send message via ESP-NOW
