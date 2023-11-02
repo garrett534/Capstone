@@ -144,7 +144,7 @@ void loop() {
     offset = sum_accel/numSamples;
   }
   
-  myData.id = 3;
+  myData.id = 1;
   //Read raw values
   int xRaw = ReadAxis(xPin)-offset;
 
@@ -152,7 +152,8 @@ void loop() {
   int xScaled = map(xRaw, RawMin, RawMax, -3000, 3000);
 
   // re-scale to fractional Gs
-  myData.x = xScaled / 1000.0;
+  //myData.x = xScaled / 1000.0;
+  myData.x = xRaw;
 
   Serial.print("xRaw:");
   Serial.print(xRaw);
