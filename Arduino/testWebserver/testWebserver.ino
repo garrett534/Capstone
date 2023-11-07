@@ -4,6 +4,19 @@
 #include <esp_now.h>
 #include <Arduino_JSON.h>
 
+// Create the global variable
+double R2R1_diff; //difference of rower 2 w/respect to rower 1
+double R3R1_diff; //difference of rower 3 w/respect to rower 1
+double R4R1_diff; //difference of rower 4 w/respect to rower 1
+int sync_thrs = 50; //threshold of 3 g's (not final waiting on testing)
+int R2R1_sync = 2; //sync bits for rower 2, 3 for slower, 1 for faster, 2 in sync
+int R3R1_sync = 2; // sync bits for rower 3
+int R4R1_sync = 2; // sync bits for rower 4
+int rower1 = 1;
+int rower2 = 2;
+int rower3 = 3;
+int rower4 = 4;
+
 AsyncWebServer server(80);
 AsyncEventSource events("/events");
 
@@ -22,15 +35,6 @@ typedef struct struct_message {
 
 // Create a struct_message called myData
 struct_message myData;
-
-// Create the global variable
-double R2R1_diff; //difference of rower 2 w/respect to rower 1
-double R3R1_diff; //difference of rower 3 w/respect to rower 1
-double R4R1_diff; //difference of rower 4 w/respect to rower 1
-int sync_thrs = 50; //threshold of 3 g's (not final waiting on testing)
-int R2R1_sync = 2; //sync bits for rower 2, 3 for slower, 1 for faster, 2 in sync
-int R3R1_sync = 2; // sync bits for rower 3
-int R4R1_sync = 2; // sync bits for rower 4
 
 // Create a structure to hold the readings from each board
 struct_message board1;
@@ -56,7 +60,6 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
   Serial.printf("x value: %d \n", boardsStruct[myData.id-1].x);
   Serial.printf("y value: %d \n", boardsStruct[myData.id-1].y);
 
-  Serial.printf("R2 R1 Sync: %d \n", R2R1_sync);
   R2R1_diff = boardsStruct[0].x - boardsStruct[1].x; //rower 1 - rower 2
   if(R2R1_diff <= sync_thrs && R2R1_diff >= -sync_thrs){ //rowers in sync
       R2R1_sync = 2;
@@ -83,6 +86,7 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
    } else { //rower 4 slower 
       R4R1_sync = 3;
    }
+   
 }
 
 // const uint8_t MPU_ADDR = 0x68; // I2C address of the MPU-6050
@@ -122,58 +126,76 @@ const char index_html[] PROGMEM = R"rawliteral(
   <div class="content">
     <div class="cards">
       <div class="card">
-        <h4><i class="fas fa-thermometer-half"></i> Rower 1</h4>
+        <h4>Rower 1</h4>
         <div class="status-box" id="status1"></div>
         <p class="status-text" id="statusText1">Target Rower</p>
       </div>
       <div class="card">
-        <h4><i class="fas fa-tint"></i> Rower 2</h4>
+        <h4>Rower 2</h4>
         <div class="status-box" id="status2"></div>
         <p class="status-text" id="statusText2">Status: <span id="statusSpan2"></span></p>
       </div>
       <div class="card">
-        <h4><i class="fas fa-thermometer-half"></i> Rower 3</h4>
+        <h4>Rower 3</h4>
         <div class="status-box" id="status3"></div>
         <p class="status-text" id="statusText3">Status: <span id="statusSpan3"></span></p>
       </div>
       <div class="card">
-        <h4><i class="fas fa-tint"></i> Rower 4</h4>
+        <h4>Rower 4</h4>
         <div class="status-box" id="status4"></div>
         <p class="status-text" id="statusText4">Status: <span id="statusSpan4"></span></p>
       </div>
     </div>
   </div>
 <script>
-  // Function to update the box color and status text based on R2R1, R3R1, R4R1 values
-  function updateStatusColorAndText(data) {
-    var syncValues = data.split(",");
-    var statusBox;
-    var statusTextSpan;
-    
-    for (var i = 2; i <= 4; i++) {
-      statusBox = document.getElementById('status' + i);
-      statusTextSpan = document.getElementById('statusSpan' + i);
+  // Function to update the box color and status text with random colors
+  function updateStatusColors(rower, value) {
+    var statusBox = document.getElementById('status' + rower);
+    var statusTextSpan = document.getElementById('statusSpan' + rower); // Updated
 
-      if (syncValues[i - 2] === '0') {
-        statusBox.style.backgroundColor = 'yellow';
-        statusTextSpan.textContent = 'slower';
-      } else if (syncValues[i - 2] === '1') {
-        statusBox.style.backgroundColor = 'red';
-        statusTextSpan.textContent = 'faster';
-      } else if (syncValues[i - 2] === '2') {
-        statusBox.style.backgroundColor = 'green';
-        statusTextSpan.textContent = 'in-sync';
-      } else {
-        // Handle other cases if needed
-      }
-    }
+  // Assign colors based on the inSyncValue
+    var color;
+    var text; 
+    
+    if (value === 1) {
+      color = 'yellow';
+      text = 'faster';
+    } else if (value === 2) {
+      color = 'green';
+      text = 'in-sync';
+    } else if (value === 3) {
+      color = 'red';
+      text = 'slower';
+    } 
+
+    // Update the status box color
+    statusBox.style.backgroundColor = color;
+    statusTextSpan.textContent = text; 
   }
 
-  // Event listener to receive the data from the server
-  var source = new EventSource('/events');
-  source.onmessage = function(event) {
-    updateStatusColorAndText(event.data);
-  };
+  // Function to update the status boxes periodically
+  function updateStatusPeriodically() {
+    fetch('/events')
+      .then(function(response) {
+        return response.text();
+      })
+      .then(function(data) {
+        var values = data.split(',');
+        var R2R1_sync = parseInt(values[0]);
+        var R3R1_sync = parseInt(values[1]);
+        var R4R1_sync = parseInt(values[2]);
+
+        updateStatusColors(2, R2R1_sync);
+        updateStatusColors(3, R3R1_sync);
+        updateStatusColors(4, R4R1_sync);
+      });
+  }
+
+  // Call the function to update the status initially
+  updateStatusPeriodically();
+
+  // Update the status boxes every 1 seconds (adjust the interval as needed)
+  setInterval(updateStatusPeriodically, 1000);
 </script>
 </body>
 </html>)rawliteral";
@@ -234,7 +256,7 @@ void updateStatus() {
 
 void loop() {
   static unsigned long lastEventTime = millis();
-  static const unsigned long EVENT_INTERVAL_MS = 5000;
+  static const unsigned long EVENT_INTERVAL_MS = 1000;
   updateStatus();
   if ((millis() - lastEventTime) > EVENT_INTERVAL_MS) {
     events.send("ping",NULL,millis());
