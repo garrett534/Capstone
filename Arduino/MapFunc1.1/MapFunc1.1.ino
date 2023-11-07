@@ -32,13 +32,6 @@ typedef struct struct_message {
   float y;
 }struct_message;
 
-// Global Calibration variables
-int offset=0;
-int numSamples = 200;
-int sum_accel=0;
-int i=0;
-int calb;
-
 // Create a struct_message called myData
 struct_message myData;
 
@@ -51,8 +44,10 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   //Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
-// Set Pins
+// const uint8_t MPU_ADDR = 0x68; // I2C address of the MPU-6050
 const int xPin = 2;
+const int yPin = 3;
+const int zPin = 4;
 
 // Create the objects for server and client
 WiFiServer server(80);
@@ -63,6 +58,7 @@ const char* password = "12345678";     // password should be atleast 8 character
 
 // Create the global variable
 double accel_x;
+double accel_y;
 
 // Variable to store the HTTP request
 String header;
@@ -88,12 +84,12 @@ void updateWebpage() {
   client.println("<body><h1>ESP32 Accelerometer Sensor</h1>");
 
   //X
-  //client.println("<p>1. X: " + String(accel_x) + "</p>");
-  //client.print("<hr>");
+  client.println("<p>1. X: " + String(accel_x) + "</p>");
+  client.print("<hr>");
 
   //Y
-  //client.println("<p>2. Y: " + String(accel_y) + "</p>");
-  //client.print("<hr>");
+  client.println("<p>2. Y: " + String(accel_y) + "</p>");
+  client.print("<hr>");
 
 }
 
@@ -138,22 +134,18 @@ void setup() {
 
 void loop() {
 
-  for (i;i<=numSamples;i++){ //calibrate accelerometer
-    calb = ReadAxis(xPin);
-    sum_accel += calb;
-    offset = sum_accel/numSamples;
-  }
-  
-  myData.id = 3;
+  myData.id = 2;
+  //myData.x = analogRead(xPin);
   //Read raw values
-  int xRaw = ReadAxis(xPin)-offset;
+  int xRaw = ReadAxis(xPin);
 
   // Convert raw values to 'milli-Gs"
   int xScaled = map(xRaw, RawMin, RawMax, -3000, 3000);
 
   // re-scale to fractional Gs
-  //myData.x = xScaled / 1000.0;
-  myData.x = xRaw;
+  myData.x = xScaled / 1000.0;
+  
+  //myData.y = analogRead(yPin);
 
   Serial.print("xRaw:");
   Serial.print(xRaw);
@@ -164,6 +156,15 @@ void loop() {
   Serial.print("G's: ");
   Serial.print(myData.x);
   Serial.println(",");
+  
+  /*
+  Serial.print("Accelx:");
+  Serial.print(accel_x);
+  Serial.print(",");
+  Serial.print("Accely:");
+  Serial.print(accel_y);
+  Serial.print(",");
+  */
 
   // Send message via ESP-NOW
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
@@ -210,3 +211,20 @@ void loop() {
 
   delay(50);
 }
+
+/*
+void loop() 
+{
+  // Convert raw values to 'milli-Gs"
+  long xScaled = map(xRaw, RawMin, RawMax, -3000, 3000);
+
+  // re-scale to fractional Gs
+  float xAccel = xScaled / 1000.0;
+  
+  Serial.print(xRaw);
+  Serial.print(", ");
+  Serial.print(xAccel,0);
+  Serial.print("G, ");
+  
+}
+*/
