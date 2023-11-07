@@ -2,21 +2,43 @@
 #include <Wire.h>
 #include <esp_now.h>
 
-// Reciever Board Code
+// Mapping code
+// initialize minimum and maximum Raw Ranges for each axis
+int RawMin = 0;
+int RawMax = 3300;
 
+// Take multiple samples to reduce noise
+const int sampleSize = 10;
+
+// Take samples and return the average
+int ReadAxis(int axisPin)
+{
+  long reading = 0;
+  analogRead(axisPin);
+  delay(1);
+  for (int i = 0; i < sampleSize; i++)
+  {
+  reading += analogRead(axisPin);
+  }
+  return reading/sampleSize;
+}
+
+// Reciever Board Code
 uint8_t broadcastAddress[] = {0x53, 0x43, 0xB2, 0x2B, 0x4E, 0xB4};
 
 typedef struct struct_message {
   int id;
-  int x;
-  int y;
+  float x;
+  float y;
 }struct_message;
-//global variables
+
+// Global Calibration variables
 int offset=0;
-int numSamples = 2000;
+int numSamples = 200;
 int sum_accel=0;
 int i=0;
 int calb;
+
 // Create a struct_message called myData
 struct_message myData;
 
@@ -25,8 +47,8 @@ esp_now_peer_info_t peerInfo;
 
 // callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
-  Serial.print("\r\nLast Packet Send Status:\t");
-  Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+  //Serial.print("\r\nLast Packet Send Status:\t");
+  //Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
 
 // Set Pins
@@ -40,8 +62,7 @@ const char* ssid   = "ROAR WebServer";// This is the SSID that ESP32 will broadc
 const char* password = "12345678";     // password should be atleast 8 characters to make it work
 
 // Create the global variable
-//double accel_x;
-int16_t accel_y;
+double accel_x;
 
 // Variable to store the HTTP request
 String header;
@@ -78,7 +99,7 @@ void updateWebpage() {
 
 void setup() {
   Serial.begin(115200);
-
+  
   //Set device as a Wi-Fi Station
   WiFi.mode(WIFI_STA);
 
@@ -116,23 +137,45 @@ void setup() {
 }
 
 void loop() {
+
   for (i;i<=numSamples;i++){ //calibrate accelerometer
-    calb = analogRead(xPin);
+    calb = ReadAxis(xPin);
     sum_accel += calb;
     offset = sum_accel/numSamples;
   }
-    myData.id = 3;
-    myData.x = analogRead(xPin)-offset;
-   
+  
+  myData.id = 1;
+  //Read raw values
+  int xRaw = ReadAxis(xPin)-offset;
+
+  // Convert raw values to 'milli-Gs"
+  int xScaled = map(xRaw, RawMin, RawMax, -3000, 3000);
+
+  // re-scale to fractional Gs
+  //myData.x = xScaled / 1000.0;
+  myData.x = xRaw;
+
+  Serial.print("xRaw:");
+  Serial.print(xRaw);
+  Serial.print(",");
+  Serial.print("milli_G's:");
+  Serial.print(xScaled);
+  Serial.print(",");
+  Serial.print("G's: ");
+  Serial.print(myData.x);
+  Serial.println(",");
+
   // Send message via ESP-NOW
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
-   
+
+  /*
   if (result == ESP_OK) {
     Serial.println("Sent with success");
   }
   else {
     Serial.println("Error sending the data");
   }
+  */ 
   
   if ( client = server.available() ) {  // Checks if a new client tries to connect to our server
     Serial.println("New Client.");
