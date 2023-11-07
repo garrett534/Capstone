@@ -134,7 +134,7 @@ void setup() {
 
 void loop() {
 
-  myData.id = 2;
+  myData.id = 3;
   //myData.x = analogRead(xPin);
   //Read raw values
   int xRaw = ReadAxis(xPin);
@@ -143,7 +143,7 @@ void loop() {
   int xScaled = map(xRaw, RawMin, RawMax, -3000, 3000);
 
   // re-scale to fractional Gs
-  myData.x = xScaled / 1000.0;
+  myData.x = xRaw;
   
   //myData.y = analogRead(yPin);
 

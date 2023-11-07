@@ -116,12 +116,14 @@ void setup() {
 }
 
 void loop() {
+  
   for (i;i<=numSamples;i++){ //calibrate accelerometer
     calb = analogRead(xPin);
     sum_accel += calb;
     offset = sum_accel/numSamples;
   }
-    myData.id = 3;
+  
+    myData.id = 1;
     myData.x = analogRead(xPin)-offset;
    
   // Send message via ESP-NOW
