@@ -13,10 +13,9 @@ const int sampleSize = 20;
 // Take samples and return the average
 int ReadAxis(int axisPin)
 {
-  long reading = 0;
+  int reading = 0;
   analogRead(axisPin);
-  delay(1);
-  for (int i = 0; i < sampleSize; i++)
+  for (int k = 0; k < sampleSize; k++)
   {
   reading += analogRead(axisPin);
   }
@@ -34,7 +33,7 @@ typedef struct struct_message {
 
 // Global Calibration variables
 int offset=0;
-int numSamples = 200;
+int numSamples = 2000;
 int sum_accel=0;
 int i=0;
 int calb;
