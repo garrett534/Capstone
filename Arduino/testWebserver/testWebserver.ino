@@ -9,7 +9,7 @@ int counter = 0;
 double R2R1_diff; //difference of rower 2 w/respect to rower 1
 double R3R1_diff; //difference of rower 3 w/respect to rower 1
 double R4R1_diff; //difference of rower 4 w/respect to rower 1
-int sync_thrs = 150; //threshold of 3 g's (not final waiting on testing)
+int sync_thrs = 50; //threshold of 3 g's (not final waiting on testing)
 int R2R1_sync = 2; //sync bits for rower 2, 3 for slower, 1 for faster, 2 in sync
 int R3R1_sync = 2; // sync bits for rower 3
 int R4R1_sync = 2; // sync bits for rower 4
