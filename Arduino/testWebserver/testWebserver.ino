@@ -5,10 +5,11 @@
 #include <Arduino_JSON.h>
 
 // Create the global variable
+int counter = 0;
 double R2R1_diff; //difference of rower 2 w/respect to rower 1
 double R3R1_diff; //difference of rower 3 w/respect to rower 1
 double R4R1_diff; //difference of rower 4 w/respect to rower 1
-int sync_thrs = 50; //threshold of 3 g's (not final waiting on testing)
+int sync_thrs = 150; //threshold of 3 g's (not final waiting on testing)
 int R2R1_sync = 2; //sync bits for rower 2, 3 for slower, 1 for faster, 2 in sync
 int R3R1_sync = 2; // sync bits for rower 3
 int R4R1_sync = 2; // sync bits for rower 4
@@ -55,7 +56,7 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
   memcpy(&myData, incomingData, sizeof(myData));
   Serial.printf("Board ID %u: %u bytes\n", myData.id, len);
   // Update the structures with the new incoming data
-  boardsStruct[myData.id-1].x = myData.x;
+  boardsStruct[myData.id-1].x = abs(myData.x);
   boardsStruct[myData.id-1].y = myData.y;
   Serial.printf("x value: %d \n", boardsStruct[myData.id-1].x);
   Serial.printf("y value: %d \n", boardsStruct[myData.id-1].y);
@@ -146,8 +147,14 @@ const char index_html[] PROGMEM = R"rawliteral(
         <p class="status-text" id="statusText4">Status: <span id="statusSpan4"></span></p>
       </div>
     </div>
+    <p id="count"></p>
   </div>
 <script>
+// Function to update the count on the webpage
+    function updateCount(count) {
+      var countElement = document.getElementById('count');
+      countElement.innerText = count;
+    }
   // Function to update the box color and status text with random colors
   function updateStatusColors(rower, value) {
     var statusBox = document.getElementById('status' + rower);
@@ -175,20 +182,24 @@ const char index_html[] PROGMEM = R"rawliteral(
 
   // Function to update the status boxes periodically
   function updateStatusPeriodically() {
-    fetch('/events')
-      .then(function(response) {
-        return response.text();
-      })
-      .then(function(data) {
-        var values = data.split(',');
-        var R2R1_sync = parseInt(values[0]);
-        var R3R1_sync = parseInt(values[1]);
-        var R4R1_sync = parseInt(values[2]);
+    // Create an event listener for the 'events' source
+    var source = new EventSource('/events');
 
-        updateStatusColors(2, R2R1_sync);
-        updateStatusColors(3, R3R1_sync);
-        updateStatusColors(4, R4R1_sync);
-      });
+    // Event listener for the 'message' event
+    source.addEventListener('message', function(e) {
+      // Parse the data received from the server
+      var data = e.data.split(',');
+      var R2R1_sync = parseInt(data[0]);
+      var R3R1_sync = parseInt(data[1]);
+      var R4R1_sync = parseInt(data[2]);
+      var count = data[3]; // Get the count from the data
+
+      // Update the status boxes and the count based on the received data
+      updateStatusColors(2, R2R1_sync);
+      updateStatusColors(3, R3R1_sync);
+      updateStatusColors(4, R4R1_sync);
+      updateCount(count); // Update the count on the webpage
+    }, false);
   }
 
   // Call the function to update the status initially
@@ -250,16 +261,22 @@ void setup() {
 
 // Function to update the status boxes periodically
 void updateStatus() {
-  String data = String(R2R1_sync) + "," + String(R3R1_sync) + "," + String(R4R1_sync);
+  // Increment the counter
+  counter++;
+  // Convert the counter to a string for display
+  String countStr = "Timer: " + String(counter);
+
+  // Update the event source with the count
+  String data = String(R2R1_sync) + "," + String(R3R1_sync) + "," + String(R4R1_sync) + "," + countStr;
   events.send(data.c_str(), NULL, millis());
 }
 
 void loop() {
   static unsigned long lastEventTime = millis();
   static const unsigned long EVENT_INTERVAL_MS = 1000;
-  updateStatus();
   if ((millis() - lastEventTime) > EVENT_INTERVAL_MS) {
     events.send("ping",NULL,millis());
+    updateStatus();
     lastEventTime = millis();
   }
 }
