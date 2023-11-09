@@ -40,7 +40,7 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
            mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
   //Serial.println(macStr);
   memcpy(&myData, incomingData, sizeof(myData));
-  //Serial.printf("Board ID %u: %u bytes\n", myData.id, len);
+  Serial.printf("Board ID %u: %u bytes\n", myData.id, len);
   //Update the structures with the new incoming data
   boardsStruct[myData.id-1].x = myData.x; //add data into board1 
   Serial.printf("x value: %d \n", boardsStruct[myData.id-1].x);

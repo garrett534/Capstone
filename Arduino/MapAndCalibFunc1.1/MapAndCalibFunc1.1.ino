@@ -4,19 +4,18 @@
 
 // Mapping code
 // initialize minimum and maximum Raw Ranges for each axis
-int RawMin = 0;
-int RawMax = 3300;
+int RawMin = -1650;
+int RawMax = 1650;
 
 // Take multiple samples to reduce noise
-const int sampleSize = 10;
+const int sampleSize = 20;
 
 // Take samples and return the average
 int ReadAxis(int axisPin)
 {
-  long reading = 0;
+  int reading = 0;
   analogRead(axisPin);
-  delay(1);
-  for (int i = 0; i < sampleSize; i++)
+  for (int k = 0; k < sampleSize; k++)
   {
   reading += analogRead(axisPin);
   }
@@ -34,7 +33,7 @@ typedef struct struct_message {
 
 // Global Calibration variables
 int offset=0;
-int numSamples = 200;
+int numSamples = 2000;
 int sum_accel=0;
 int i=0;
 int calb;
@@ -144,7 +143,7 @@ void loop() {
     offset = sum_accel/numSamples;
   }
   
-  myData.id = 3;
+  myData.id = 2;
   //Read raw values
   int xRaw = ReadAxis(xPin)-offset;
 
@@ -162,9 +161,9 @@ void loop() {
   Serial.print(xScaled);
   Serial.print(",");
   Serial.print("G's: ");
-  Serial.print(myData.x);
+  Serial.print(xScaled / 1000.0);
   Serial.println(",");
-
+ 
   // Send message via ESP-NOW
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
 
