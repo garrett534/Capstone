@@ -28,6 +28,16 @@ uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 int16_t accel_x;
 int16_t accel_y;
 
+// Create the global variables for the x-axis acceleration for each board
+int16_t accel_x_1;
+int16_t accel_x_2;
+int16_t accel_x_3;
+int16_t accel_x_4;
+String accelString1;
+String accelString2;
+String accelString3;
+String accelString4;
+
 typedef struct struct_message {
   int id;
   int x;
@@ -87,7 +97,27 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
    } else { //rower 4 slower 
       R4R1_sync = 3;
    }
-   
+
+   // Check which board is sending data and save to the right global
+   if(myData.id == 1){
+    accel_x_1 = myData.x;
+    accelString1 = "Accelx:" + String(accel_x_1) + "\n";
+    appendFile(SD, "/Board1/run.txt", accelString1.c_str());
+   } else if(myData.id == 2){
+    accel_x_2 = myData.x;
+    accelString2 = "Accelx:" + String(accel_x_2) + "\n";
+    appendFile(SD, "/Board2/run.txt", accelString2.c_str());
+   } else if(myData.id == 3){
+    accel_x_3 = myData.x;
+    accelString3 = "Accelx:" + String(accel_x_3) + "\n";
+    appendFile(SD, "/Board3/run.txt", accelString3.c_str());
+   } else if(myData.id == 4){
+    accel_x_4 = myData.x;
+    accelString4 = "Accelx:" + String(accel_x_4) + "\n";
+    appendFile(SD, "/Board4/run.txt", accelString4.c_str());
+   }
+ 
+  Serial.println();
 }
 
 // const uint8_t MPU_ADDR = 0x68; // I2C address of the MPU-6050
@@ -211,6 +241,96 @@ const char index_html[] PROGMEM = R"rawliteral(
 </body>
 </html>)rawliteral";
 
+#define SCK  4
+#define MISO  5
+#define MOSI  6
+#define CS  7
+SPIClass spi = SPIClass('VSPI');
+
+void createDir(fs::FS &fs, const char * path){
+    Serial.printf("Creating Dir: %s\n", path);
+    if(fs.mkdir(path)){
+        Serial.println("Dir created");
+    } else {
+        Serial.println("mkdir failed");
+    }
+}
+
+void removeDir(fs::FS &fs, const char * path){
+    Serial.printf("Removing Dir: %s\n", path);
+    if(fs.rmdir(path)){
+        Serial.println("Dir removed");
+    } else {
+        Serial.println("rmdir failed");
+    }
+}
+
+void readFile(fs::FS &fs, const char * path){
+    Serial.printf("Reading file: %s\n", path);
+
+    File file = fs.open(path);
+    if(!file){
+        Serial.println("Failed to open file for reading");
+        return;
+    }
+
+    Serial.print("Read from file: ");
+    while(file.available()){
+        Serial.write(file.read());
+    }
+    file.close();
+}
+
+void writeFile(fs::FS &fs, const char * path, const char * message){
+    Serial.printf("Writing file: %s\n", path);
+
+    File file = fs.open(path, FILE_WRITE);
+    if(!file){
+        Serial.println("Failed to open file for writing");
+        return;
+    }
+    if(file.print(message)){
+        Serial.println("File written");
+    } else {
+        Serial.println("Write failed");
+    }
+    file.close();
+}
+
+void appendFile(fs::FS &fs, const char * path, const char * message){
+    Serial.printf("Appending to file: %s\n", path);
+
+    File file = fs.open(path, FILE_APPEND);
+    if(!file){
+        Serial.println("Failed to open file for appending");
+        return;
+    }
+    if(file.print(message)){
+        Serial.println("Message appended");
+    } else {
+        Serial.println("Append failed");
+    }
+    file.close();
+}
+
+void renameFile(fs::FS &fs, const char * path1, const char * path2){
+    Serial.printf("Renaming file %s to %s\n", path1, path2);
+    if (fs.rename(path1, path2)) {
+        Serial.println("File renamed");
+    } else {
+        Serial.println("Rename failed");
+    }
+}
+
+void deleteFile(fs::FS &fs, const char * path){
+    Serial.printf("Deleting file: %s\n", path);
+    if(fs.remove(path)){
+        Serial.println("File deleted");
+    } else {
+        Serial.println("Delete failed");
+    }
+}
+
 void setup() {
   Serial.begin(115200);
 
@@ -259,6 +379,54 @@ void setup() {
 
 }
 
+// Set SPI Pins
+    spi.begin(SCK, MISO, MOSI, CS);
+    
+    if(!SD.begin(CS)){
+        Serial.println("Card Mount Failed");
+        return;
+    }
+    uint8_t cardType = SD.cardType();
+
+    if(cardType == CARD_NONE){
+        Serial.println("No SD card attached");
+        return;
+    }
+
+    Serial.print("SD Card Type: ");
+    if(cardType == CARD_MMC){
+        Serial.println("MMC");
+    } else if(cardType == CARD_SD){
+        Serial.println("SDSC");
+    } else if(cardType == CARD_SDHC){
+        Serial.println("SDHC");
+    } else {
+        Serial.println("UNKNOWN");
+    }
+
+    
+    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+    Serial.printf("SD Card Size: %lluMB\n", cardSize);
+
+     //listDir(SD, "/", 0);
+    createDir(SD, "/Board1");
+    createDir(SD, "/Board2");
+    createDir(SD, "/Board3");
+    createDir(SD, "/Board4");
+    //listDir(SD, "/", 0);
+    //removeDir(SD, "/mydir");
+    //listDir(SD, "/", 2);
+    writeFile(SD, "/Board1/run.txt", "Running Test\n");
+    writeFile(SD, "/Board2/run.txt", "Running Test\n");
+    writeFile(SD, "/Board3/run.txt", "Running Test\n");
+    writeFile(SD, "/Board4/run.txt", "Running Test\n");
+    //appendFile(SD, "/hello.txt", "World!\n");
+    //readFile(SD, "/hello.txt");
+    //deleteFile(SD, "/foo.txt");
+    //renameFile(SD, "/hello.txt", "/foo.txt");
+    //readFile(SD, "/foo.txt");
+    //testFileIO(SD, "/test.txt");
+    
 // Function to update the status boxes periodically
 void updateStatus() {
   // Increment the counter
@@ -279,4 +447,10 @@ void loop() {
     updateStatus();
     lastEventTime = millis();
   }
+
+  // Print remaining space
+  Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
+  Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
+
+  
 }
