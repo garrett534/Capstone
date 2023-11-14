@@ -5,6 +5,7 @@
 #include <Arduino_JSON.h>
 
 // Create the global variable
+int counter = 0;
 double R2R1_diff; //difference of rower 2 w/respect to rower 1
 double R3R1_diff; //difference of rower 3 w/respect to rower 1
 double R4R1_diff; //difference of rower 4 w/respect to rower 1
@@ -26,6 +27,16 @@ uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 // Create the global variable
 int16_t accel_x;
 int16_t accel_y;
+
+// Create the global variables for the x-axis acceleration for each board
+int16_t accel_x_1;
+int16_t accel_x_2;
+int16_t accel_x_3;
+int16_t accel_x_4;
+String accelString1;
+String accelString2;
+String accelString3;
+String accelString4;
 
 typedef struct struct_message {
   int id;
@@ -55,7 +66,7 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
   memcpy(&myData, incomingData, sizeof(myData));
   Serial.printf("Board ID %u: %u bytes\n", myData.id, len);
   // Update the structures with the new incoming data
-  boardsStruct[myData.id-1].x = myData.x;
+  boardsStruct[myData.id-1].x = abs(myData.x);
   boardsStruct[myData.id-1].y = myData.y;
   Serial.printf("x value: %d \n", boardsStruct[myData.id-1].x);
   Serial.printf("y value: %d \n", boardsStruct[myData.id-1].y);
@@ -86,7 +97,27 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
    } else { //rower 4 slower 
       R4R1_sync = 3;
    }
-   
+
+   // Check which board is sending data and save to the right global
+   if(myData.id == 1){
+    accel_x_1 = myData.x;
+    accelString1 = "Accelx:" + String(accel_x_1) + "\n";
+    appendFile(SD, "/Board1/run.txt", accelString1.c_str());
+   } else if(myData.id == 2){
+    accel_x_2 = myData.x;
+    accelString2 = "Accelx:" + String(accel_x_2) + "\n";
+    appendFile(SD, "/Board2/run.txt", accelString2.c_str());
+   } else if(myData.id == 3){
+    accel_x_3 = myData.x;
+    accelString3 = "Accelx:" + String(accel_x_3) + "\n";
+    appendFile(SD, "/Board3/run.txt", accelString3.c_str());
+   } else if(myData.id == 4){
+    accel_x_4 = myData.x;
+    accelString4 = "Accelx:" + String(accel_x_4) + "\n";
+    appendFile(SD, "/Board4/run.txt", accelString4.c_str());
+   }
+ 
+  Serial.println();
 }
 
 // const uint8_t MPU_ADDR = 0x68; // I2C address of the MPU-6050
@@ -146,8 +177,14 @@ const char index_html[] PROGMEM = R"rawliteral(
         <p class="status-text" id="statusText4">Status: <span id="statusSpan4"></span></p>
       </div>
     </div>
+    <p id="count"></p>
   </div>
 <script>
+// Function to update the count on the webpage
+    function updateCount(count) {
+      var countElement = document.getElementById('count');
+      countElement.innerText = count;
+    }
   // Function to update the box color and status text with random colors
   function updateStatusColors(rower, value) {
     var statusBox = document.getElementById('status' + rower);
@@ -175,20 +212,24 @@ const char index_html[] PROGMEM = R"rawliteral(
 
   // Function to update the status boxes periodically
   function updateStatusPeriodically() {
-    fetch('/events')
-      .then(function(response) {
-        return response.text();
-      })
-      .then(function(data) {
-        var values = data.split(',');
-        var R2R1_sync = parseInt(values[0]);
-        var R3R1_sync = parseInt(values[1]);
-        var R4R1_sync = parseInt(values[2]);
+    // Create an event listener for the 'events' source
+    var source = new EventSource('/events');
 
-        updateStatusColors(2, R2R1_sync);
-        updateStatusColors(3, R3R1_sync);
-        updateStatusColors(4, R4R1_sync);
-      });
+    // Event listener for the 'message' event
+    source.addEventListener('message', function(e) {
+      // Parse the data received from the server
+      var data = e.data.split(',');
+      var R2R1_sync = parseInt(data[0]);
+      var R3R1_sync = parseInt(data[1]);
+      var R4R1_sync = parseInt(data[2]);
+      var count = data[3]; // Get the count from the data
+
+      // Update the status boxes and the count based on the received data
+      updateStatusColors(2, R2R1_sync);
+      updateStatusColors(3, R3R1_sync);
+      updateStatusColors(4, R4R1_sync);
+      updateCount(count); // Update the count on the webpage
+    }, false);
   }
 
   // Call the function to update the status initially
@@ -199,6 +240,96 @@ const char index_html[] PROGMEM = R"rawliteral(
 </script>
 </body>
 </html>)rawliteral";
+
+#define SCK  4
+#define MISO  5
+#define MOSI  6
+#define CS  7
+SPIClass spi = SPIClass('VSPI');
+
+void createDir(fs::FS &fs, const char * path){
+    Serial.printf("Creating Dir: %s\n", path);
+    if(fs.mkdir(path)){
+        Serial.println("Dir created");
+    } else {
+        Serial.println("mkdir failed");
+    }
+}
+
+void removeDir(fs::FS &fs, const char * path){
+    Serial.printf("Removing Dir: %s\n", path);
+    if(fs.rmdir(path)){
+        Serial.println("Dir removed");
+    } else {
+        Serial.println("rmdir failed");
+    }
+}
+
+void readFile(fs::FS &fs, const char * path){
+    Serial.printf("Reading file: %s\n", path);
+
+    File file = fs.open(path);
+    if(!file){
+        Serial.println("Failed to open file for reading");
+        return;
+    }
+
+    Serial.print("Read from file: ");
+    while(file.available()){
+        Serial.write(file.read());
+    }
+    file.close();
+}
+
+void writeFile(fs::FS &fs, const char * path, const char * message){
+    Serial.printf("Writing file: %s\n", path);
+
+    File file = fs.open(path, FILE_WRITE);
+    if(!file){
+        Serial.println("Failed to open file for writing");
+        return;
+    }
+    if(file.print(message)){
+        Serial.println("File written");
+    } else {
+        Serial.println("Write failed");
+    }
+    file.close();
+}
+
+void appendFile(fs::FS &fs, const char * path, const char * message){
+    Serial.printf("Appending to file: %s\n", path);
+
+    File file = fs.open(path, FILE_APPEND);
+    if(!file){
+        Serial.println("Failed to open file for appending");
+        return;
+    }
+    if(file.print(message)){
+        Serial.println("Message appended");
+    } else {
+        Serial.println("Append failed");
+    }
+    file.close();
+}
+
+void renameFile(fs::FS &fs, const char * path1, const char * path2){
+    Serial.printf("Renaming file %s to %s\n", path1, path2);
+    if (fs.rename(path1, path2)) {
+        Serial.println("File renamed");
+    } else {
+        Serial.println("Rename failed");
+    }
+}
+
+void deleteFile(fs::FS &fs, const char * path){
+    Serial.printf("Deleting file: %s\n", path);
+    if(fs.remove(path)){
+        Serial.println("File deleted");
+    } else {
+        Serial.println("Delete failed");
+    }
+}
 
 void setup() {
   Serial.begin(115200);
@@ -248,18 +379,78 @@ void setup() {
 
 }
 
+// Set SPI Pins
+    spi.begin(SCK, MISO, MOSI, CS);
+    
+    if(!SD.begin(CS)){
+        Serial.println("Card Mount Failed");
+        return;
+    }
+    uint8_t cardType = SD.cardType();
+
+    if(cardType == CARD_NONE){
+        Serial.println("No SD card attached");
+        return;
+    }
+
+    Serial.print("SD Card Type: ");
+    if(cardType == CARD_MMC){
+        Serial.println("MMC");
+    } else if(cardType == CARD_SD){
+        Serial.println("SDSC");
+    } else if(cardType == CARD_SDHC){
+        Serial.println("SDHC");
+    } else {
+        Serial.println("UNKNOWN");
+    }
+
+    
+    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+    Serial.printf("SD Card Size: %lluMB\n", cardSize);
+
+     //listDir(SD, "/", 0);
+    createDir(SD, "/Board1");
+    createDir(SD, "/Board2");
+    createDir(SD, "/Board3");
+    createDir(SD, "/Board4");
+    //listDir(SD, "/", 0);
+    //removeDir(SD, "/mydir");
+    //listDir(SD, "/", 2);
+    writeFile(SD, "/Board1/run.txt", "Running Test\n");
+    writeFile(SD, "/Board2/run.txt", "Running Test\n");
+    writeFile(SD, "/Board3/run.txt", "Running Test\n");
+    writeFile(SD, "/Board4/run.txt", "Running Test\n");
+    //appendFile(SD, "/hello.txt", "World!\n");
+    //readFile(SD, "/hello.txt");
+    //deleteFile(SD, "/foo.txt");
+    //renameFile(SD, "/hello.txt", "/foo.txt");
+    //readFile(SD, "/foo.txt");
+    //testFileIO(SD, "/test.txt");
+    
 // Function to update the status boxes periodically
 void updateStatus() {
-  String data = String(R2R1_sync) + "," + String(R3R1_sync) + "," + String(R4R1_sync);
+  // Increment the counter
+  counter++;
+  // Convert the counter to a string for display
+  String countStr = "Timer: " + String(counter);
+
+  // Update the event source with the count
+  String data = String(R2R1_sync) + "," + String(R3R1_sync) + "," + String(R4R1_sync) + "," + countStr;
   events.send(data.c_str(), NULL, millis());
 }
 
 void loop() {
   static unsigned long lastEventTime = millis();
   static const unsigned long EVENT_INTERVAL_MS = 1000;
-  updateStatus();
   if ((millis() - lastEventTime) > EVENT_INTERVAL_MS) {
     events.send("ping",NULL,millis());
+    updateStatus();
     lastEventTime = millis();
   }
+
+  // Print remaining space
+  Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
+  Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
+
+  
 }
