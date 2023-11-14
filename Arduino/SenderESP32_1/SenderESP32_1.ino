@@ -123,7 +123,7 @@ void loop() {
     offset = sum_accel/numSamples;
   }
   
-    myData.id = 1;
+    myData.id = 3;
     myData.x = analogRead(xPin)-offset;
    
   // Send message via ESP-NOW

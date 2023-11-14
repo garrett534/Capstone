@@ -18,7 +18,7 @@ struct_message myData;
 double R2R1_diff; //difference of rower 2 w/respect to rower 1
 double R3R1_diff; //difference of rower 3 w/respect to rower 1
 double R4R1_diff; //difference of rower 4 w/respect to rower 1
-int sync_thrs = 200; //threshold of 3 g's (not final waiting on testing)
+int sync_thrs = 150; //threshold of 3 g's (not final waiting on testing)
 int R2R1_sync = 0; //sync bits for rower 2, 1 for faster, 2 in sync, 3 for slower
 int R3R1_sync; // sync bits for rower 3
 int R4R1_sync; // sync bits for rower 4
@@ -42,9 +42,9 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
   memcpy(&myData, incomingData, sizeof(myData));
   Serial.printf("Board ID %u: %u bytes\n", myData.id, len);
   //Update the structures with the new incoming data
-  boardsStruct[myData.id-1].x = myData.x; //add data into board1 
+  boardsStruct[myData.id-1].x = abs(myData.x); //add data into board1 
   Serial.printf("x value: %d \n", boardsStruct[myData.id-1].x);
-  //Serial.printf("R2R1 Sync: %d \n", R2R1_sync);
+  //Serial.printf("R3R1 Sync: %d \n", R2R1_sync);
   //compare rower 2 to rower 1
   R2R1_diff = boardsStruct[0].x - boardsStruct[1].x; //rower 1 - rower 2
   if(R2R1_diff <= sync_thrs && R2R1_diff >= -sync_thrs){ //rowers in sync

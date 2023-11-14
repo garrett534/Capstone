@@ -13,7 +13,7 @@ const int sampleSize = 20;
 // Take samples and return the average
 int ReadAxis(int axisPin)
 {
-  long reading = 0;
+  int reading = 0;
   analogRead(axisPin);
   delay(1);
   for (int i = 0; i < sampleSize; i++)
@@ -144,7 +144,7 @@ void loop() {
     offset = sum_accel/numSamples;
   }
   
-  myData.id = 2;
+  myData.id = 1;
   //Read raw values
   int xRaw = ReadAxis(xPin)-offset;
 
