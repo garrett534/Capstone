@@ -33,10 +33,18 @@ int16_t accel_x_1;
 int16_t accel_x_2;
 int16_t accel_x_3;
 int16_t accel_x_4;
+int16_t xScaled_1;
+int16_t xScaled_2;
+int16_t xScaled_3;
+int16_t xScaled_4;
 String accelString1;
 String accelString2;
 String accelString3;
 String accelString4;
+
+// initialize minimum and maximum Raw Ranges for each axis
+int RawMin = -1650;
+int RawMax = 1650;
 
 typedef struct struct_message {
   int id;
@@ -100,20 +108,32 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
 
    // Check which board is sending data and save to the right global
    if(myData.id == 1){
-    accel_x_1 = myData.x;
-    accelString1 = "Accelx:" + String(accel_x_1) + "\n";
+    
+    // Convert raw values to 'milli-Gs"
+    xScaled_1 = map(myData.x, RawMin, RawMax, -3000, 3000);
+    
+    accelString1 = "Accelx:" + String(xScaled_1) + "\n";
     appendFile(SD, "/Board1/run.txt", accelString1.c_str());
    } else if(myData.id == 2){
-    accel_x_2 = myData.x;
-    accelString2 = "Accelx:" + String(accel_x_2) + "\n";
+
+    // Convert raw values to 'milli-Gs"
+    xScaled_2 = map(myData.x, RawMin, RawMax, -3000, 3000);
+    
+    accelString2 = "Accelx:" + String(xScaled_2) + "\n";
     appendFile(SD, "/Board2/run.txt", accelString2.c_str());
    } else if(myData.id == 3){
-    accel_x_3 = myData.x;
-    accelString3 = "Accelx:" + String(accel_x_3) + "\n";
+
+    // Convert raw values to 'milli-Gs"
+    xScaled_3 = map(myData.x, RawMin, RawMax, -3000, 3000);
+    
+    accelString3 = "Accelx:" + String(xScaled_3) + "\n";
     appendFile(SD, "/Board3/run.txt", accelString3.c_str());
    } else if(myData.id == 4){
-    accel_x_4 = myData.x;
-    accelString4 = "Accelx:" + String(accel_x_4) + "\n";
+
+    // Convert raw values to 'milli-Gs"
+    xScaled_4 = map(myData.x, RawMin, RawMax, -3000, 3000);
+    
+    accelString4 = "Accelx:" + String(xScaled_4) + "\n";
     appendFile(SD, "/Board4/run.txt", accelString4.c_str());
    }
  

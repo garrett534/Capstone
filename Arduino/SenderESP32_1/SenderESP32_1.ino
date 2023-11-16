@@ -6,7 +6,6 @@
 // Set Pins
 const int xPin = 2;
 
-// Mapping code
 // initialize minimum and maximum Raw Ranges for each axis
 int RawMin = -1650;
 int RawMax = 1650;
