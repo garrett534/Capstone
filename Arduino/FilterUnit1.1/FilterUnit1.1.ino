@@ -31,7 +31,7 @@ int ReadAxis(int axisPin)
 
   // Insert fake bad sample > 3300 or < 0
   if (i == 5){
-    currentRead -= 10000;
+    currentRead += 10000;
   }
 
   // Updated unfilteredWrongReading

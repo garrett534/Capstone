@@ -143,7 +143,7 @@ void loop() {
     offset = sum_accel/numSamples;
   }
   
-  myData.id = 1;
+  myData.id = 2;
   //Read raw values
   int xRaw = ReadAxis(xPin)-offset;
 
