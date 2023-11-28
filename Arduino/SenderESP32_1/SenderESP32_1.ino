@@ -2,6 +2,42 @@
 #include <Wire.h>
 #include <esp_now.h>
 
+
+// Set Pins
+const int xPin = 2;
+
+// initialize minimum and maximum Raw Ranges for each axis
+int RawMin = -1650;
+int RawMax = 1650;
+
+// Take multiple samples to reduce noise
+const int sampleSize = 10;
+
+// Define a previous read
+int previousRead = analogRead(xPin); 
+
+// Take samples and return the average
+int ReadAxis(int axisPin)
+{
+  // Declare variables
+  int reading = 0;
+  int currentRead = 0;
+  
+  for (int i = 0; i < sampleSize; i++)
+  {
+  currentRead = analogRead(axisPin);
+  
+  // Check for bad sample
+  if (currentRead > RawMax || currentRead < RawMin){
+    currentRead = previousRead; 
+  }
+  reading += currentRead;
+  previousRead = currentRead; 
+  }
+  
+  return reading/sampleSize;
+}
+
 // Reciever Board Code
 
 uint8_t broadcastAddress[] = {0x53, 0x43, 0xB2, 0x2B, 0x4E, 0xB4};
@@ -28,9 +64,6 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   Serial.print("\r\nLast Packet Send Status:\t");
   Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
 }
-
-// Set Pins
-const int xPin = 2;
 
 // Create the objects for server and client
 WiFiServer server(80);
@@ -118,13 +151,15 @@ void setup() {
 void loop() {
   
   for (i;i<=numSamples;i++){ //calibrate accelerometer
-    calb = analogRead(xPin);
+    calb = ReadAxis(xPin);
     sum_accel += calb;
     offset = sum_accel/numSamples;
   }
   
     myData.id = 1;
     myData.x = analogRead(xPin)-offset;
+    myData.id = 3;
+    myData.x =  ReadAxis(xPin)-offset;
    
   // Send message via ESP-NOW
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
