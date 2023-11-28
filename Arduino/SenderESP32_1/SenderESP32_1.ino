@@ -159,7 +159,7 @@ void loop() {
   // Update the previous read
   previousRead = analogRead(xPin);
 
-  myData.id = 3;
+  myData.id = 2;
   myData.x =  ReadAxis(xPin)-offset;
    
   // Send message via ESP-NOW
