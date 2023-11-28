@@ -11,10 +11,10 @@ int RawMin = -1650;
 int RawMax = 1650;
 
 // Take multiple samples to reduce noise
-const int sampleSize = 10;
+const int sampleSize = 20;
 
 // Define a previous read
-int previousRead = analogRead(xPin); 
+int previousRead = 0; 
 
 // Take samples and return the average
 int ReadAxis(int axisPin)
@@ -151,17 +151,28 @@ void setup() {
 void loop() {
   
   for (i;i<=numSamples;i++){ //calibrate accelerometer
-    calb = ReadAxis(xPin);
+    calb = analogRead(xPin);
     sum_accel += calb;
     offset = sum_accel/numSamples;
   }
-  
-    myData.id = 3;
-    myData.x =  ReadAxis(xPin)-offset;
+
+  // Update the previous read
+  previousRead = analogRead(xPin);
+
+  myData.id = 3;
+  myData.x =  ReadAxis(xPin)-offset;
    
   // Send message via ESP-NOW
   esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *) &myData, sizeof(myData));
-   
+
+  // Print myData.x for debugging 
+  /*
+  Serial.print("x Data:");
+  Serial.print(myData.x);
+  Serial.print(",");
+  */ 
+  
+  Serial.println();
   if (result == ESP_OK) {
     Serial.println("Sent with success");
   }
