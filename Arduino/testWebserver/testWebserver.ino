@@ -7,6 +7,67 @@
 #include "SD.h"
 #include "SPI.h"
 
+// Create the global variable
+int counter = 0;
+double R2R1_diff; //difference of rower 2 w/respect to rower 1
+double R3R1_diff; //difference of rower 3 w/respect to rower 1
+double R4R1_diff; //difference of rower 4 w/respect to rower 1
+int sync_thrs = 50; //threshold of 3 g's (not final waiting on testing)
+int R2R1_sync = 2; //sync bits for rower 2, 3 for slower, 1 for faster, 2 in sync
+int R3R1_sync = 2; // sync bits for rower 3
+int R4R1_sync = 2; // sync bits for rower 4
+int rower1 = 1;
+int rower2 = 2;
+int rower3 = 3;
+int rower4 = 4;
+
+AsyncWebServer server(80);
+AsyncEventSource events("/events");
+
+// Reciever Board Code
+uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+// Create the global variable
+int16_t accel_x;
+int16_t accel_y;
+
+// Create the global variables for the x-axis acceleration for each board
+int16_t accel_x_1;
+int16_t accel_x_2;
+int16_t accel_x_3;
+int16_t accel_x_4;
+int16_t xScaled_1;
+int16_t xScaled_2;
+int16_t xScaled_3;
+int16_t xScaled_4;
+String accelString1;
+String accelString2;
+String accelString3;
+String accelString4;
+
+// initialize minimum and maximum Raw Ranges for each axis
+int RawMin = -1650;
+int RawMax = 1650;
+
+typedef struct struct_message {
+  int id;
+  int x;
+  int y;
+}struct_message;
+
+// Create a struct_message called myData
+struct_message myData;
+
+// Create a structure to hold the readings from each board
+struct_message board1;
+struct_message board2;
+struct_message board3;
+struct_message board4;
+
+// Create an array with all the structures
+struct_message boardsStruct[4] = {board1, board2, board3, board4};
+
+
 void createDir(fs::FS &fs, const char * path){
     Serial.printf("Creating Dir: %s\n", path);
     if(fs.mkdir(path)){
@@ -90,65 +151,6 @@ void deleteFile(fs::FS &fs, const char * path){
         Serial.println("Delete failed");
     }
 }
-// Create the global variable
-int counter = 0;
-double R2R1_diff; //difference of rower 2 w/respect to rower 1
-double R3R1_diff; //difference of rower 3 w/respect to rower 1
-double R4R1_diff; //difference of rower 4 w/respect to rower 1
-int sync_thrs = 50; //threshold of 3 g's (not final waiting on testing)
-int R2R1_sync = 2; //sync bits for rower 2, 3 for slower, 1 for faster, 2 in sync
-int R3R1_sync = 2; // sync bits for rower 3
-int R4R1_sync = 2; // sync bits for rower 4
-int rower1 = 1;
-int rower2 = 2;
-int rower3 = 3;
-int rower4 = 4;
-
-AsyncWebServer server(80);
-AsyncEventSource events("/events");
-
-// Reciever Board Code
-uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-// Create the global variable
-int16_t accel_x;
-int16_t accel_y;
-
-// Create the global variables for the x-axis acceleration for each board
-int16_t accel_x_1;
-int16_t accel_x_2;
-int16_t accel_x_3;
-int16_t accel_x_4;
-int16_t xScaled_1;
-int16_t xScaled_2;
-int16_t xScaled_3;
-int16_t xScaled_4;
-String accelString1;
-String accelString2;
-String accelString3;
-String accelString4;
-
-// initialize minimum and maximum Raw Ranges for each axis
-int RawMin = -1650;
-int RawMax = 1650;
-
-typedef struct struct_message {
-  int id;
-  int x;
-  int y;
-}struct_message;
-
-// Create a struct_message called myData
-struct_message myData;
-
-// Create a structure to hold the readings from each board
-struct_message board1;
-struct_message board2;
-struct_message board3;
-struct_message board4;
-
-// Create an array with all the structures
-struct_message boardsStruct[4] = {board1, board2, board3, board4};
 
 // callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
@@ -222,8 +224,6 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
     accelString4 = "Accelx:" + String(xScaled_4) + "\n";
     appendFile(SD, "/Board4/run.txt", accelString4.c_str());
    }
- 
-  Serial.println();
 }
 
 // const uint8_t MPU_ADDR = 0x68; // I2C address of the MPU-6050
@@ -347,8 +347,6 @@ const char index_html[] PROGMEM = R"rawliteral(
 </body>
 </html>)rawliteral";
 
-
-
 void setup() {
   Serial.begin(115200);
 
@@ -395,10 +393,10 @@ void setup() {
   // Start our ESP32 server
   server.begin();
 
-#define SCK  4
-#define MISO  5
-#define MOSI  6
-#define CS  7
+#define SCK  18
+#define MISO  19
+#define MOSI  23
+#define CS  5
 SPIClass spi = SPIClass('VSPI');
 
     // Set SPI Pins
@@ -449,6 +447,7 @@ SPIClass spi = SPIClass('VSPI');
     //readFile(SD, "/foo.txt");
     //testFileIO(SD, "/test.txt");
 }
+
 // Function to update the status boxes periodically
 void updateStatus() {
   // Increment the counter
@@ -473,6 +472,5 @@ void loop() {
   // Print remaining space
   Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
   Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
-
   
 }
