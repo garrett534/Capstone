@@ -6,6 +6,11 @@
 #include "FS.h"
 #include "SD.h"
 #include "SPI.h"
+#define SCK  18
+#define MISO  19
+#define MOSI  23
+#define CS  5
+SPIClass spi = SPIClass('VSPI');
 
 // Create the global variable
 int counter = 0;
@@ -393,59 +398,53 @@ void setup() {
   // Start our ESP32 server
   server.begin();
 
-#define SCK  18
-#define MISO  19
-#define MOSI  23
-#define CS  5
-SPIClass spi = SPIClass('VSPI');
+  // Set SPI Pins
+  spi.begin(SCK, MISO, MOSI, CS);
+  
+  if(!SD.begin(CS)){
+      Serial.println("Card Mount Failed");
+      return;
+  }
+  uint8_t cardType = SD.cardType();
 
-    // Set SPI Pins
-    spi.begin(SCK, MISO, MOSI, CS);
-    
-    if(!SD.begin(CS)){
-        Serial.println("Card Mount Failed");
-        return;
-    }
-    uint8_t cardType = SD.cardType();
+  if(cardType == CARD_NONE){
+      Serial.println("No SD card attached");
+      return;
+  }
 
-    if(cardType == CARD_NONE){
-        Serial.println("No SD card attached");
-        return;
-    }
-
-    Serial.print("SD Card Type: ");
-    if(cardType == CARD_MMC){
-        Serial.println("MMC");
-    } else if(cardType == CARD_SD){
-        Serial.println("SDSC");
-    } else if(cardType == CARD_SDHC){
-        Serial.println("SDHC");
-    } else {
-        Serial.println("UNKNOWN");
+  Serial.print("SD Card Type: ");
+  if(cardType == CARD_MMC){
+      Serial.println("MMC");
+  } else if(cardType == CARD_SD){
+      Serial.println("SDSC");
+  } else if(cardType == CARD_SDHC){
+      Serial.println("SDHC");
+  } else {
+      Serial.println("UNKNOWN");
     }
 
     
-    uint64_t cardSize = SD.cardSize() / (1024 * 1024);
-    Serial.printf("SD Card Size: %lluMB\n", cardSize);
+  uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+  Serial.printf("SD Card Size: %lluMB\n", cardSize);
 
-     //listDir(SD, "/", 0);
-    createDir(SD, "/Board1");
-    createDir(SD, "/Board2");
-    createDir(SD, "/Board3");
-    createDir(SD, "/Board4");
-    //listDir(SD, "/", 0);
-    //removeDir(SD, "/mydir");
-    //listDir(SD, "/", 2);
-    writeFile(SD, "/Board1/run.txt", "Running Test\n");
-    writeFile(SD, "/Board2/run.txt", "Running Test\n");
-    writeFile(SD, "/Board3/run.txt", "Running Test\n");
-    writeFile(SD, "/Board4/run.txt", "Running Test\n");
-    //appendFile(SD, "/hello.txt", "World!\n");
-    //readFile(SD, "/hello.txt");
-    //deleteFile(SD, "/foo.txt");
-    //renameFile(SD, "/hello.txt", "/foo.txt");
-    //readFile(SD, "/foo.txt");
-    //testFileIO(SD, "/test.txt");
+   //listDir(SD, "/", 0);
+  createDir(SD, "/Board1");
+  createDir(SD, "/Board2");
+  createDir(SD, "/Board3");
+  createDir(SD, "/Board4");
+  //listDir(SD, "/", 0);
+  //removeDir(SD, "/mydir");
+  //listDir(SD, "/", 2);
+  writeFile(SD, "/Board1/run.txt", "Running Test\n");
+  writeFile(SD, "/Board2/run.txt", "Running Test\n");
+  writeFile(SD, "/Board3/run.txt", "Running Test\n");
+  writeFile(SD, "/Board4/run.txt", "Running Test\n");
+  //appendFile(SD, "/hello.txt", "World!\n");
+  //readFile(SD, "/hello.txt");
+  //deleteFile(SD, "/foo.txt");
+  //renameFile(SD, "/hello.txt", "/foo.txt");
+  //readFile(SD, "/foo.txt");
+  //testFileIO(SD, "/test.txt");
 }
 
 // Function to update the status boxes periodically
@@ -470,7 +469,7 @@ void loop() {
   }
 
   // Print remaining space
-  Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
-  Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
+  //Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
+  //Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
   
 }
