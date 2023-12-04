@@ -3,6 +3,14 @@
 #include <Wire.h>
 #include <esp_now.h>
 #include <Arduino_JSON.h>
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
+#define SCK  18
+#define MISO  19
+#define MOSI  23
+#define CS  5
+SPIClass spi = SPIClass('VSPI');
 
 // Create the global variable
 int counter = 0;
@@ -33,6 +41,18 @@ int16_t accel_x_1;
 int16_t accel_x_2;
 int16_t accel_x_3;
 int16_t accel_x_4;
+int16_t xScaled_1;
+int16_t xScaled_2;
+int16_t xScaled_3;
+int16_t xScaled_4;
+String accelString1;
+String accelString2;
+String accelString3;
+String accelString4;
+
+// initialize minimum and maximum Raw Ranges for each axis
+int RawMin = -1650;
+int RawMax = 1650;
 
 typedef struct struct_message {
   int id;
@@ -51,6 +71,91 @@ struct_message board4;
 
 // Create an array with all the structures
 struct_message boardsStruct[4] = {board1, board2, board3, board4};
+
+
+void createDir(fs::FS &fs, const char * path){
+    Serial.printf("Creating Dir: %s\n", path);
+    if(fs.mkdir(path)){
+        Serial.println("Dir created");
+    } else {
+        Serial.println("mkdir failed");
+    }
+}
+
+void removeDir(fs::FS &fs, const char * path){
+    Serial.printf("Removing Dir: %s\n", path);
+    if(fs.rmdir(path)){
+        Serial.println("Dir removed");
+    } else {
+        Serial.println("rmdir failed");
+    }
+}
+
+void readFile(fs::FS &fs, const char * path){
+    Serial.printf("Reading file: %s\n", path);
+
+    File file = fs.open(path);
+    if(!file){
+        Serial.println("Failed to open file for reading");
+        return;
+    }
+
+    Serial.print("Read from file: ");
+    while(file.available()){
+        Serial.write(file.read());
+    }
+    file.close();
+}
+
+void writeFile(fs::FS &fs, const char * path, const char * message){
+    Serial.printf("Writing file: %s\n", path);
+
+    File file = fs.open(path, FILE_WRITE);
+    if(!file){
+        Serial.println("Failed to open file for writing");
+        return;
+    }
+    if(file.print(message)){
+        Serial.println("File written");
+    } else {
+        Serial.println("Write failed");
+    }
+    file.close();
+}
+
+void appendFile(fs::FS &fs, const char * path, const char * message){
+    Serial.printf("Appending to file: %s\n", path);
+
+    File file = fs.open(path, FILE_APPEND);
+    if(!file){
+        Serial.println("Failed to open file for appending");
+        return;
+    }
+    if(file.print(message)){
+        Serial.println("Message appended");
+    } else {
+        Serial.println("Append failed");
+    }
+    file.close();
+}
+
+void renameFile(fs::FS &fs, const char * path1, const char * path2){
+    Serial.printf("Renaming file %s to %s\n", path1, path2);
+    if (fs.rename(path1, path2)) {
+        Serial.println("File renamed");
+    } else {
+        Serial.println("Rename failed");
+    }
+}
+
+void deleteFile(fs::FS &fs, const char * path){
+    Serial.printf("Deleting file: %s\n", path);
+    if(fs.remove(path)){
+        Serial.println("File deleted");
+    } else {
+        Serial.println("Delete failed");
+    }
+}
 
 // callback function that will be executed when data is received
 void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) {
@@ -92,6 +197,37 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
       R4R1_sync = 1;
    } else { //rower 4 slower 
       R4R1_sync = 3;
+   }
+
+   // Check which board is sending data and save to the right global
+   if(myData.id == 1){
+    
+    // Convert raw values to 'milli-Gs"
+    xScaled_1 = map(myData.x, RawMin, RawMax, -3000, 3000);
+    
+    accelString1 = "Accelx:" + String(xScaled_1) + "\n";
+    appendFile(SD, "/Board1/run.txt", accelString1.c_str());
+   } else if(myData.id == 2){
+
+    // Convert raw values to 'milli-Gs"
+    xScaled_2 = map(myData.x, RawMin, RawMax, -3000, 3000);
+    
+    accelString2 = "Accelx:" + String(xScaled_2) + "\n";
+    appendFile(SD, "/Board2/run.txt", accelString2.c_str());
+   } else if(myData.id == 3){
+
+    // Convert raw values to 'milli-Gs"
+    xScaled_3 = map(myData.x, RawMin, RawMax, -3000, 3000);
+    
+    accelString3 = "Accelx:" + String(xScaled_3) + "\n";
+    appendFile(SD, "/Board3/run.txt", accelString3.c_str());
+   } else if(myData.id == 4){
+
+    // Convert raw values to 'milli-Gs"
+    xScaled_4 = map(myData.x, RawMin, RawMax, -3000, 3000);
+    
+    accelString4 = "Accelx:" + String(xScaled_4) + "\n";
+    appendFile(SD, "/Board4/run.txt", accelString4.c_str());
    }
 }
 
@@ -261,6 +397,54 @@ void setup() {
   server.addHandler(&events);
   // Start our ESP32 server
   server.begin();
+
+  // Set SPI Pins
+  spi.begin(SCK, MISO, MOSI, CS);
+  
+  if(!SD.begin(CS)){
+      Serial.println("Card Mount Failed");
+      return;
+  }
+  uint8_t cardType = SD.cardType();
+
+  if(cardType == CARD_NONE){
+      Serial.println("No SD card attached");
+      return;
+  }
+
+  Serial.print("SD Card Type: ");
+  if(cardType == CARD_MMC){
+      Serial.println("MMC");
+  } else if(cardType == CARD_SD){
+      Serial.println("SDSC");
+  } else if(cardType == CARD_SDHC){
+      Serial.println("SDHC");
+  } else {
+      Serial.println("UNKNOWN");
+    }
+
+    
+  uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+  Serial.printf("SD Card Size: %lluMB\n", cardSize);
+
+   //listDir(SD, "/", 0);
+  createDir(SD, "/Board1");
+  createDir(SD, "/Board2");
+  createDir(SD, "/Board3");
+  createDir(SD, "/Board4");
+  //listDir(SD, "/", 0);
+  //removeDir(SD, "/mydir");
+  //listDir(SD, "/", 2);
+  writeFile(SD, "/Board1/run.txt", "Running Test\n");
+  writeFile(SD, "/Board2/run.txt", "Running Test\n");
+  writeFile(SD, "/Board3/run.txt", "Running Test\n");
+  writeFile(SD, "/Board4/run.txt", "Running Test\n");
+  //appendFile(SD, "/hello.txt", "World!\n");
+  //readFile(SD, "/hello.txt");
+  //deleteFile(SD, "/foo.txt");
+  //renameFile(SD, "/hello.txt", "/foo.txt");
+  //readFile(SD, "/foo.txt");
+  //testFileIO(SD, "/test.txt");
 }
 
 // Function to update the status boxes periodically
@@ -283,4 +467,9 @@ void loop() {
     updateStatus();
     lastEventTime = millis();
   }
+
+  // Print remaining space
+  //Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
+  //Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
+  
 }

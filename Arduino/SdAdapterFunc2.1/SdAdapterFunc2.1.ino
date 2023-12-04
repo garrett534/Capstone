@@ -107,10 +107,10 @@ void updateWebpage() {
 
 }
 
-#define SCK  4
-#define MISO  5
-#define MOSI  6
-#define CS  7
+#define SCK  18
+#define MISO  19
+#define MOSI 23
+#define CS  5
 SPIClass spi = SPIClass('VSPI');
 
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
@@ -354,8 +354,8 @@ void setup() {
 void loop() {
 
     // Print remaining space
-    Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
-    Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
+    // Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
+    // Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));
     
     if ( client = server.available() ) {  // Checks if a new client tries to connect to our server
       Serial.println("New Client.");
